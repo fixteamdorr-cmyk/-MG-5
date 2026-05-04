@@ -1,0 +1,5 @@
+{
+  "name": "2GO",
+  "description": "A modern ride-hailing and delivery platform with a sleek, animated interface.",
+  "requestFramePermissions": ["geolocation"]
+}

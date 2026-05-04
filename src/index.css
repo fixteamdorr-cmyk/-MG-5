@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700&family=Cairo:wght@400;600;700;900&display=swap');
+
+@theme {
+  --font-sans: "Cairo", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cairo", "Outfit", sans-serif;
+  --color-taxi-yellow: #FFD700;
+  --color-gold: #c5a059;
+}
+
+body {
+  @apply bg-zinc-50 text-zinc-900 antialiased;
+}

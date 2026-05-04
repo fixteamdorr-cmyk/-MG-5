@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "Driver": {
+      "title": "Driver",
+      "description": "A driver registered in the 2GO application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID of the driver." },
+        "fullName": { "type": "string", "description": "Full name of the driver." },
+        "email": { "type": "string", "format": "email", "description": "Email address of the driver." },
+        "phone": { "type": "string", "description": "Phone number of the driver." },
+        "carModel": { "type": "string", "description": "Model of the driver's car." },
+        "carYear": { "type": "number", "description": "Year of the driver's car." },
+        "carPlate": { "type": "string", "description": "License plate number of the car." },
+        "vehicleType": { "type": "string", "enum": ["sedan", "suv", "luxury"], "description": "Type of the vehicle." },
+        "preferredCurrency": { "type": "string", "enum": ["AED", "USD"], "description": "Driver's preferred currency for earnings." },
+        "car_image_url": { "type": "string", "format": "uri", "description": "URL to the front photo of the car." },
+        "profile_image_url": { "type": "string", "format": "uri", "description": "URL to the driver's profile photo." },
+        "id_card_url": { "type": "string", "format": "uri", "description": "URL to the driver's ID card photo." },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "auto-approved"], "description": "Current status of the driver's application." },
+        "aiReviewResult": { "type": "string", "description": "Summary of the AI document review." },
+        "rejectionReason": { "type": "string", "description": "Reason for rejection if AI or manual review fails." },
+        "isFlaggedForManualReview": { "type": "boolean", "description": "Whether the application needs human intervention." },
+        "payoutMethod": { "type": "string", "enum": ["bank_transfer", "stripe"], "description": "Driver's chosen payout method." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when the application was submitted." }
+      },
+      "required": ["uid", "fullName", "email", "phone", "carModel", "carYear", "carPlate", "vehicleType", "status", "payoutMethod", "createdAt"]
+    },
+    "Trip": {
+      "title": "Trip",
+      "description": "A completed ride record.",
+      "type": "object",
+      "properties": {
+        "driverId": { "type": "string", "description": "UID or name of the driver." },
+        "passengerId": { "type": "string", "description": "UID of the passenger." },
+        "passengerEmail": { "type": "string", "format": "email", "description": "Billing email for the trip." },
+        "destination": { "type": "string", "description": "Destination of the trip." },
+        "distance": { "type": "string", "description": "Distance traveled." },
+        "duration": { "type": "string", "description": "Duration of the trip." },
+        "earnings": { "type": "number", "description": "Amount earned in AED." },
+        "currency": { "type": "string", "description": "Currency used (AED)." },
+        "date": { "type": "string", "format": "date", "description": "Date of the trip (YYYY-MM-DD)." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp of the trip." }
+      },
+      "required": ["passengerId", "earnings", "date", "timestamp"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A rating and review for a driver.",
+      "type": "object",
+      "properties": {
+        "driverId": { "type": "string", "description": "UID or name of the driver." },
+        "passengerId": { "type": "string", "description": "UID of the passenger." },
+        "rating": { "type": "number", "description": "Rating from 1 to 5." },
+        "review": { "type": "string", "description": "Optional text review." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp of the review." }
+      },
+      "required": ["driverId", "passengerId", "rating", "timestamp"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A real-time notification for a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the user to receive the notification." },
+        "title": { "type": "string", "description": "Title of the notification." },
+        "body": { "type": "string", "description": "Body text of the notification." },
+        "type": { "type": "string", "enum": ["driver_arrival", "trip_start", "trip_complete", "system", "promotional"], "description": "Type of event." },
+        "read": { "type": "boolean", "description": "Whether the notification has been read." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp." }
+      },
+      "required": ["userId", "title", "body", "timestamp"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message sent between passenger and driver during a trip.",
+      "type": "object",
+      "properties": {
+        "tripId": { "type": "string", "description": "ID of the trip this chat belongs to." },
+        "senderId": { "type": "string", "description": "UID of the sender." },
+        "text": { "type": "string", "description": "Content of the message." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Server timestamp." }
+      },
+      "required": ["tripId", "senderId", "text", "timestamp"]
+    },
+    "TripRequest": {
+      "title": "TripRequest",
+      "description": "A request for a ride from a passenger.",
+      "type": "object",
+      "properties": {
+        "passengerId": { "type": "string", "description": "UID of the passenger." },
+        "passengerName": { "type": "string", "description": "Name of the passenger." },
+        "pickup": { "type": "object", "description": "Pickup location {lat, lng, address}." },
+        "destination": { "type": "object", "description": "Destination location {lat, lng, address}." },
+        "status": { "type": "string", "enum": ["pending", "accepted", "cancelled", "completed"], "description": "Status of the request." },
+        "driverId": { "type": "string", "description": "UID of the driver who accepted." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Time of request." }
+      },
+      "required": ["passengerId", "pickup", "destination", "status", "timestamp"]
+    },
+    "UserPreferences": {
+      "title": "UserPreferences",
+      "description": "Notification and other user-specific settings.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "UID of the user." },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "pushEnabled": { "type": "boolean", "description": "Enable push notifications." },
+            "tripUpdates": { "type": "boolean", "description": "Enable in-app alerts for trip updates." },
+            "promotional": { "type": "boolean", "description": "Enable promotional messages." }
+          }
+        }
+      },
+      "required": ["uid", "notifications"]
+    }
+  },
+  "firestore": {
+    "/drivers/{driverId}": {
+      "schema": "Driver",
+      "description": "Collection of driver applications."
+    },
+    "/trips/{tripId}": {
+      "schema": "Trip",
+      "description": "Collection of completed trip records."
+    },
+    "/reviews/{reviewId}": {
+      "schema": "Review",
+      "description": "Collection of driver reviews."
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Collection of real-time notifications."
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Collection of chat messages for trips."
+    },
+    "/trip_requests/{requestId}": {
+      "schema": "TripRequest",
+      "description": "Collection of active ride requests."
+    },
+    "/user_preferences/{userId}": {
+      "schema": "UserPreferences",
+      "description": "User-specific settings and preferences."
+    }
+  }
+}

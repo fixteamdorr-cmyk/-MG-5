@@ -5,7 +5,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useTranslation } from "react-i18next";
-import { Home, Car, UserCircle, ArrowRight, Search, MapPin, Navigation, ArrowLeft, X, LocateFixed, Star, Phone, MessageCircle, CreditCard, ShieldCheck, IdCard, Camera, Play, ClipboardList, Mail, Hash, Calendar, CheckCircle2, AlertCircle, Upload, Luggage, User, Facebook, Instagram, Youtube, Twitter, Plane, Hotel, Bus, Train, Palmtree, Award, Apple, FileText, LogOut, Settings, HelpCircle, Zap, Clock, TrendingUp, Activity, Bot, ChevronRight, Compass, Wifi, PhoneCall, ChevronLeft, Map as MapIcon, Info, ExternalLink, ArrowRightLeft, Maximize2, Handshake, Building2, ArrowUpRight, Users, Sparkles, MessageSquare, Loader2 } from "lucide-react";
+import { Home, Car, UserCircle, ArrowRight, Search, MapPin, Navigation, ArrowLeft, X, LocateFixed, Star, Phone, MessageCircle, CreditCard, ShieldCheck, IdCard, Camera, Play, ClipboardList, Mail, Hash, Calendar, CheckCircle2, AlertCircle, Upload, Luggage, User, Facebook, Instagram, Youtube, Twitter, Plane, Hotel, Bus, Train, Palmtree, Award, Apple, FileText, LogOut, Settings, HelpCircle, Zap, Clock, TrendingUp, Activity, Bot, ChevronRight, Compass, Wifi, PhoneCall, ChevronLeft, Map as MapIcon, Info, ExternalLink, ArrowRightLeft, Maximize2, Handshake, Building2, ArrowUpRight, Users, Sparkles, MessageSquare, Loader2, History, DollarSign } from "lucide-react";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { GoogleMap, useJsApiLoader, Marker, Polyline, Autocomplete, InfoWindow } from "@react-google-maps/api";
 import { auth, db, storage } from "./firebase";
@@ -29,7 +29,8 @@ import {
   getDocs, 
   orderBy, 
   updateDoc, 
-  onSnapshot 
+  onSnapshot,
+  limit 
 } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { toast, Toaster } from "sonner";
@@ -784,21 +785,25 @@ function LandingPage({ onStart, onDriverLogin, onJoinPilot, onOpenHub, showConte
 
         {/* Services Grid */}
         <div className="pt-8 w-full">
-          <p className="text-xs font-black text-zinc-900 mb-4">Use 2GO to Book</p>
+          <p className="text-xs font-black text-zinc-900 mb-4 px-1">Use 2GO to Book</p>
           <div className="grid grid-cols-6 gap-2">
             {[
-              { icon: Plane, label: "FLIGHTS" },
-              { icon: Hotel, label: "HOTELS" },
-              { icon: Bus, label: "BUSES" },
-              { icon: Train, label: "TRAINS" },
-              { icon: Palmtree, label: "HOLIDAYS" },
-              { icon: Car, label: "CABS", active: true }
+              { icon: Plane, label: "FLIGHTS", bg: "bg-sky-50", text: "text-sky-600" },
+              { icon: Hotel, label: "HOTELS", bg: "bg-indigo-50", text: "text-indigo-600" },
+              { icon: Bus, label: "BUSES", bg: "bg-orange-50", text: "text-orange-600" },
+              { icon: Train, label: "TRAINS", bg: "bg-blue-50", text: "text-blue-600" },
+              { icon: Palmtree, label: "HOLIDAYS", bg: "bg-emerald-50", text: "text-emerald-600" },
+              { icon: Car, label: "CABS", bg: "bg-yellow-400", text: "text-black", active: true }
             ].map((item, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.active ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-400'}`}>
-                  <item.icon size={18} />
-                </div>
-                <span className={`text-[8px] font-black ${item.active ? 'text-zinc-900' : 'text-zinc-400'}`}>{item.label}</span>
+              <div key={i} className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <motion.div 
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${item.bg} ${item.text} ${item.active ? 'ring-2 ring-yellow-400 ring-offset-1' : ''}`}
+                >
+                  <item.icon size={18} strokeWidth={2.5} />
+                </motion.div>
+                <span className={`text-[8px] font-black tracking-tighter transition-colors ${item.active ? 'text-zinc-900' : 'text-zinc-400 group-hover:text-zinc-600'}`}>{item.label}</span>
               </div>
             ))}
           </div>
@@ -3607,6 +3612,8 @@ function AdminDashboard({ onBack }: { onBack: () => void }) {
                   </div>
                 )}
 
+                <AdminDriverDetailsSection driver={driver} />
+
                 <div className="flex gap-4">
                   <button 
                     onClick={() => handleStatusUpdate(driver.id, 'approved')}
@@ -3663,6 +3670,130 @@ function AdminDashboard({ onBack }: { onBack: () => void }) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// --- Admin Sub-Component for Driver Details ---
+function AdminDriverDetailsSection({ driver }: { driver: any }) {
+  const { t } = useTranslation();
+  const [stats, setStats] = useState({ earnings: 0, trips: [] as any[] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!driver.id) return;
+    const q = query(
+      collection(db, "trip_requests"),
+      where("driverId", "==", driver.id),
+      orderBy("timestamp", "desc"),
+      limit(5)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      const completed = docs.filter((d: any) => d.status === 'completed');
+      
+      // Calculate total earnings for this driver (could also fetch a specific stats doc, but this is live)
+      const earnings = completed.reduce((sum: number, d: any) => {
+        const price = typeof d.estimation?.price === 'string' 
+          ? parseFloat(d.estimation.price) 
+          : (d.estimation?.price || 0);
+        return sum + price;
+      }, 0);
+
+      setStats({ earnings, trips: docs });
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching driver stats for admin:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [driver.id]);
+
+  if (loading && stats.trips.length === 0) {
+    return <div className="h-20 flex items-center justify-center p-4"><Loader2 className="animate-spin text-zinc-300" /></div>;
+  }
+
+  return (
+    <div className="space-y-5 pt-6 border-t border-zinc-50">
+      <div className="flex items-center justify-between bg-zinc-50/50 p-4 rounded-3xl border border-zinc-100">
+        <div className="space-y-1">
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">إجمالي الأرباح</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-black text-green-600">{stats.earnings.toLocaleString()}</span>
+            <span className="text-[10px] font-bold text-green-600/60 uppercase tracking-widest">د.ت</span>
+          </div>
+        </div>
+        <div className="flex gap-2">
+           <a 
+             href={`tel:${driver.phone}`} 
+             className="w-12 h-12 bg-white text-blue-600 rounded-2xl flex items-center justify-center shadow-sm border border-zinc-100 hover:bg-blue-50 transition-all active:scale-90"
+             title="اتصال هاتفي"
+           >
+              <PhoneCall size={20} />
+           </a>
+           <a 
+             href={`https://wa.me/${driver.phone?.replace('+', '').replace(/\s/g, '')}`} 
+             target="_blank" 
+             rel="noreferrer" 
+             className="w-12 h-12 bg-white text-green-600 rounded-2xl flex items-center justify-center shadow-sm border border-zinc-100 hover:bg-green-50 transition-all active:scale-90"
+             title="رسالة واتساب"
+           >
+              <MessageSquare size={20} />
+           </a>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between px-2">
+          <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">آخر الرحلات</p>
+          <div className="w-8 h-px bg-zinc-100 flex-1 mx-4"></div>
+          <History size={14} className="text-zinc-300" />
+        </div>
+        
+        <div className="space-y-2">
+          {stats.trips.length > 0 ? stats.trips.map((trip: any) => (
+            <div key={trip.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-zinc-100 hover:border-zinc-200 transition-colors group">
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+                  trip.status === 'completed' ? 'bg-green-50 text-green-600' : 
+                  trip.status === 'cancelled' ? 'bg-red-50 text-red-600' : 'bg-zinc-100 text-zinc-500'
+                }`}>
+                  <MapPin size={16} />
+                </div>
+                <div className="space-y-0.5">
+                   <p className="text-[11px] font-black text-zinc-800 truncate max-w-[140px] group-hover:text-black transition-colors">
+                     {trip.destination?.address || 'وجهة غير محددة'}
+                   </p>
+                   <div className="flex items-center gap-2">
+                     <Clock size={10} className="text-zinc-300" />
+                     <p className="text-[9px] font-bold text-zinc-400">
+                       {trip.timestamp?.toDate ? trip.timestamp?.toDate().toLocaleDateString('ar-TN') : 'تاريخ غير معروف'}
+                     </p>
+                   </div>
+                </div>
+              </div>
+              <div className="text-right space-y-0.5">
+                <div className="flex items-center justify-end gap-1">
+                  <span className="text-xs font-black text-zinc-900">{trip.estimation?.price || 0}</span>
+                  <span className="text-[8px] font-bold text-zinc-400">د.ت</span>
+                </div>
+                <p className={`text-[9px] font-black uppercase tracking-tighter ${
+                  trip.status === 'completed' ? 'text-green-500' : 
+                  trip.status === 'cancelled' ? 'text-red-400' : 'text-zinc-300'
+                }`}>
+                  {trip.status === 'completed' ? 'مكتملة' : trip.status === 'cancelled' ? 'ملغاة' : trip.status}
+                </p>
+              </div>
+            </div>
+          )) : (
+            <div className="py-8 text-center bg-zinc-50/30 rounded-3xl border border-dashed border-zinc-100">
+              <p className="text-[10px] font-bold text-zinc-400 italic">لا توجد رحلات مسجلة لهذا السائق بعد</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
